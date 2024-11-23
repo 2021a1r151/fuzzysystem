@@ -1,0 +1,54 @@
+import numpy as np
+import skfuzzy as fuzz
+from skfuzzy import control as ctrl
+import matplotlib.pyplot as plt
+
+# Define input variables
+price_trend = ctrl.Antecedent(np.arange(-1, 1.1, 0.1), 'price_trend')
+volatility = ctrl.Antecedent(np.arange(0, 1.1, 0.1), 'volatility')
+sentiment = ctrl.Antecedent(np.arange(-1, 1.1, 0.1), 'sentiment')
+
+# Define output variable
+action = ctrl.Consequent(np.arange(-1, 1.1, 0.1), 'action')
+
+# Define membership functions
+price_trend['down'] = fuzz.trimf(price_trend.universe, [-1, -1, 0])
+price_trend['steady'] = fuzz.trimf(price_trend.universe, [-1, 0, 1])
+price_trend['up'] = fuzz.trimf(price_trend.universe, [0, 1, 1])
+
+volatility['low'] = fuzz.trimf(volatility.universe, [0, 0, 0.5])
+volatility['medium'] = fuzz.trimf(volatility.universe, [0, 0.5, 1])
+volatility['high'] = fuzz.trimf(volatility.universe, [0.5, 1, 1])
+
+sentiment['negative'] = fuzz.trimf(sentiment.universe, [-1, -1, 0])
+sentiment['neutral'] = fuzz.trimf(sentiment.universe, [-1, 0, 1])
+sentiment['positive'] = fuzz.trimf(sentiment.universe, [0, 1, 1])
+
+action['sell'] = fuzz.trimf(action.universe, [-1, -1, 0])
+action['hold'] = fuzz.trimf(action.universe, [-1, 0, 1])
+action['buy'] = fuzz.trimf(action.universe, [0, 1, 1])
+rule1 = ctrl.Rule(price_trend['down'] & volatility['high'], action['sell'])
+rule2 = ctrl.Rule(price_trend['steady'] & sentiment['positive'], action['hold'])
+rule3 = ctrl.Rule(price_trend['up'] & sentiment['positive'], action['buy'])
+rule4 = ctrl.Rule(volatility['low'] & sentiment['negative'], action['sell'])
+rule5 = ctrl.Rule(price_trend['steady'] & volatility['medium'], action['hold'])
+# Create control system and simulation
+trading_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4, rule5])
+trading_simulation = ctrl.ControlSystemSimulation(trading_ctrl)
+
+# Test the system with example inputs
+trading_simulation.input['price_trend'] = 0.5   # Trend is slightly up
+trading_simulation.input['volatility'] = 0.4    # Medium volatility
+trading_simulation.input['sentiment'] = 0.7     # Positive sentiment
+# Compute the result
+trading_simulation.compute()
+print("Recommended Action Level:", trading_simulation.output['action'])
+# Plot the membership functions
+price_trend.view()
+volatility.view()
+sentiment.view()
+action.view()
+
+
+
+
